@@ -1,0 +1,65 @@
+version: '3.5'
+
+# network setting is not necessary, you can just use docker default network
+networks:
+  nextcloud_network:
+    driver: bridge
+    ipam: 
+      driver: default
+      config: 
+        - subnet: 192.168.100.0/24
+services:
+  db:
+    image: mysql:5.7.31
+    container_name: mysql
+    ports:
+      - 3306:3306
+    environment:
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_PASSWORD=yourpassword
+      - MYSQL_RANDOM_ROOT_PASSWORD=yes
+    restart: always
+    networks:
+      nextcloud_network:
+        ipv4_address: 192.168.100.20
+
+  nextcloud:
+    image: nextcloud:18.0.2
+    ports:
+      - 80:80
+      - 443:443
+    environment:
+    # if you want to use external mysql database the change environment that you can connect mysql
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_HOST=<mysql ip>
+      - MYSQL_USER=nextcloud
+      - MYSQL_PASSWORD=yourpassword
+    restart: always
+    tty: true
+    container_name: nextcloud
+    networks:
+      nextcloud_network:
+        ipv4_address: 192.168.100.21
+    volumes:
+      # you can change path for save nextcloud data
+      - $HOME/nextcloud/nextcloud_data:/var/www/html/data
+    depends_on: 
+      - db
+
+  collabora:
+    image: collabora/code
+    container_name: collabora
+    ports:
+      - 9980:9980
+    environment:
+      - usernamne=collabora
+      - password=collabora
+      - extra_params=--o:ssl.enable=false
+      - domain=nexcloud.example.com
+    restart: always
+    cap_add:
+      - "MKNOD"
+    networks:
+      nextcloud_network:
+        ipv4_address: 192.168.100.22
